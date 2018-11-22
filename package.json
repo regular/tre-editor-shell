@@ -1,0 +1,32 @@
+{
+  "name": "tre-editor-shell",
+  "version": "1.0.0",
+  "description": "A wrapper around editors that warns about external changes and offers to merge",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Jan Bölsche <jan@lagomorph.de> (https://regular.codes/)",
+  "license": "ISC",
+  "dependencies": {
+    "human-time": "0.0.1",
+    "module-styles": "^1.0.0",
+    "mutant": "^3.22.1",
+    "s-ago": "0.0.1",
+    "tre-watch-heads": "^1.0.1"
+  },
+  "tre-init": {
+    "plugins": {
+      "tre-client": true,
+      "ssb-revisions": true
+    }
+  },
+  "devDependencies": {
+    "ssb-revisions": "^1.0.1",
+    "tre-client": "^1.1.0",
+    "tre-finder": "^2.0.0",
+    "tre-json-editor": "^1.0.0",
+    "tre-split-pane": "^1.0.0"
+  }
+}
