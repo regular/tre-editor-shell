@@ -11,9 +11,9 @@
   "license": "ISC",
   "dependencies": {
     "human-time": "0.0.1",
+    "json8-patch": "^0.4.1",
     "module-styles": "^1.0.0",
     "mutant": "^3.22.1",
-    "s-ago": "0.0.1",
     "tre-watch-heads": "^1.0.1"
   },
   "tre-init": {

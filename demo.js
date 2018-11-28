@@ -76,8 +76,7 @@ client( (err, ssb, config) => {
         makePane('70%', [
           h('h1', 'Editor'),
           computed(primarySelection, kv => kv ? [
-            renderShell(kv),
-            renderEditor(kv)
+            renderShell(kv, {renderEditor, contentObs: Value(kv.value.content)})
           ] : [])
         ])
       ])
