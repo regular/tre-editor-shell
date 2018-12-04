@@ -4,19 +4,18 @@ const Value = require('mutant/value')
 const humanTime = require('human-time')
 const History = require('tre-revision-history')
 const {diff, apply} = require('json8-patch')
+const pointer = require('json8-pointer')
 
 module.exports = function EditorShell(ssb, opts) {
   opts = opts || {}
   const history = History(ssb)
 
-  function externalChanges(revRoot, baseObs, contentObs) {
-    const revisionsObs = history(revRoot)
+  function externalChanges(revRoot, baseObs, contentObs, revisionsObs) {
 
     return computed( [revisionsObs, baseObs, contentObs], (revisions, base_kv, content) => {
 
       if (!base_kv) return h('span', 'No base')
 
-      revisions = revisions.slice().reverse()
       if (!revisions.length) return h('span', 'No revisions')
       if (revisions[0].key == base_kv.key) return h('span', '(based on head)')
 
@@ -36,11 +35,9 @@ module.exports = function EditorShell(ssb, opts) {
           })
           return conflict
         })
-        return [
-          h('div.new-revision', [
-            `${author.substr(0, 8)} has published an update ${time}`,
-            h('ul.operations', newRevDiff.map(renderOperation))
-          ]),
+        return h('div.new-revision', [
+          `${author.substr(0, 8)} has published an update ${time}`,
+          h('ul.operations', newRevDiff.map(renderOperation)),
           h('div.diff-to-new-revision', [
             todo.length ? [
               `To merge these changes`,
@@ -53,7 +50,7 @@ module.exports = function EditorShell(ssb, opts) {
               }, 'Rebase')
             ] : []
           ])
-        ]
+        ])
       })
     })
   }
@@ -65,7 +62,7 @@ module.exports = function EditorShell(ssb, opts) {
       if (operations.length == 0) return []
       return h('div.local-changes', [
         h('span', 'Your changes'),
-        h('ul.operations', operations.map(renderOperation))
+        h('ul.operations', operations.map(renderOperation)),
       ])
     })
   }
@@ -81,8 +78,8 @@ module.exports = function EditorShell(ssb, opts) {
     const {op, path, value, from} = o
     return h(`li.${op}`, [
       h('span.op', op),
-      h('span.path', path),
-      h('span.value', value),
+      h('span.path', pointer.decode(path).join('.')),
+      h(`span.value.${typeof value}`, value),
       h('span.from', from),
       opts.applyButton ? h('button', {
         'ev-click': e => {
@@ -101,15 +98,49 @@ module.exports = function EditorShell(ssb, opts) {
     ctx.contentObs = contentObs
     const baseObs = ctx.baseObs || Value(kv)
     ctx.baseObs = baseObs
+    const revisionsObs = history(revRoot, {reverse: true})
+    const willFork = computed( [revisionsObs, baseObs], (revisions, base_kv) => {
+      if (!base_kv) return false
+      if (!revisions.length) return false
+      if (revisions[0].key == base_kv.key) return false
+      return true
+    })
 
-    let external = externalChanges(revRoot, baseObs, contentObs)
-    return h('div.tre-editor-shell', {
-      hooks: [el => external.abort]
-    }, [
-      external,
+    return h('div.tre-editor-shell', [
+      externalChanges(revRoot, baseObs, contentObs, revisionsObs),
       renderEditor(kv, ctx),
       localChanges(contentObs, baseObs),
+      saveButton()
     ])
+
+    function saveButton() {
+      return computed([willFork, baseObs, contentObs], (fork, base_kv, content) => {
+        const disabled = diff(base_kv.value.content, content).length == 0
+        const label = fork ? 'Publish (will fork)' : 'Publish'
+        return h('button', {
+          disabled,
+          'ev-click': e => {
+            if (opts.save) {
+              const content = Object.assign({}, contentObs(), {
+                revisionRoot: revisionRoot(baseObs()),
+                revisionBranch: baseObs().key
+              })
+              opts.save({
+                key: baseObs().key,
+                value: { content }
+              }, (err, new_kv) => {
+                if (err) return
+                kv = new_kv
+                const newContent = kv.value.content
+                contentObs.set(newContent)
+                baseObs.set(kv)
+              })
+            }
+          }
+        }, label)
+      })
+    }
+
   }
 }
 

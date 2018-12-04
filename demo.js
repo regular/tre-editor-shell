@@ -33,6 +33,23 @@ setStyle(`
   .tre-finder summary {
     white-space: nowrap;
   }
+  .tre-editor-shell .operations li span {
+    margin-right: .5em;
+  }
+  .tre-editor-shell .new-revision {
+    background: #B9A249;
+    padding: 1em;
+    margin-bottom: 1em;
+  }
+  .operations span.path {
+    font-family: monospace;
+  }
+  .operations span.value.string:before {
+    content: "\\"";
+  }
+  .operations span.value.string:after {
+    content: "\\"";
+  }
 `)
 
 client( (err, ssb, config) => {
@@ -57,13 +74,14 @@ client( (err, ssb, config) => {
       theme: 'ace/theme/solarized_dark',
       tabSize: 2,
       useSoftTabs: true
-    },
-    save: content => {
-      console.log('new content', content)
     }
   })
 
-  const renderShell = Shell(ssb)
+  const renderShell = Shell(ssb, {
+    save: (kv, cb) => {
+      ssb.publish(kv.value.content, cb)
+    }
+  })
   let current_kv
 
   document.body.appendChild(
