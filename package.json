@@ -14,7 +14,7 @@
     "json8-patch": "^0.4.1",
     "module-styles": "^1.0.0",
     "mutant": "^3.22.1",
-    "tre-watch-heads": "^1.0.1"
+    "tre-revision-history": "^1.0.0"
   },
   "tre-init": {
     "plugins": {

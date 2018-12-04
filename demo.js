@@ -64,6 +64,7 @@ client( (err, ssb, config) => {
   })
 
   const renderShell = Shell(ssb)
+  let current_kv
 
   document.body.appendChild(
     h('div.tre-prototypes-demo', [
@@ -75,11 +76,20 @@ client( (err, ssb, config) => {
         makeDivider(),
         makePane('70%', [
           h('h1', 'Editor'),
-          computed(primarySelection, kv => kv ? [
-            renderShell(kv, {renderEditor, contentObs: Value(kv.value.content)})
-          ] : [])
+          computed(primarySelection, kv => {
+            if (revisionRoot(kv) == revisionRoot(current_kv)) return computed.NO_CHANGE
+            current_kv = kv
+            console.warn('rendering editor shell for', kv)
+            return kv ? [
+              renderShell(kv, {renderEditor, contentObs: Value(kv.value.content)})
+            ] : []
+          })
         ])
       ])
     ])
   )
 })
+
+function revisionRoot(kv) {
+  return kv && kv.value.content && kv.value.content.revisionRoot || kv && kv.key
+}
