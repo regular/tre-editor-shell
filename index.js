@@ -36,8 +36,10 @@ module.exports = function EditorShell(ssb, opts) {
           return conflict
         })
         return h('div.new-revision', [
-          `${author.substr(0, 8)} has published an update ${time}`,
-          h('ul.operations', newRevDiff.map(renderOperation)),
+          h('details', [
+            h('summary', `${author.substr(0, 5)} has published revision ${rev.key.substr(0,5)} ${time}`),
+            h('ul.operations', newRevDiff.map(renderOperation)),
+          ]),
           h('div.diff-to-new-revision', [
             todo.length ? [
               `To merge these changes`,

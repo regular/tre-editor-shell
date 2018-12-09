@@ -10,6 +10,12 @@ const {makePane, makeDivider, makeSplitPane} = require('tre-split-pane')
 require('brace/theme/solarized_dark')
 
 setStyle(`
+  body, html, .tre-prototypes-demo {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+  }
   body {
     --tre-selection-color: green;
     --tre-secondary-selection-color: yellow;
@@ -21,9 +27,10 @@ setStyle(`
   .pane {
     background: #eee;
   }
-  .tre-finder {
-    max-width: 300px;
+  .pane > h1 {
+    margin-left: 1em;
   }
+  
   .tre-finder .summary select {
     font-size: 9pt;
     background: transparent;
@@ -32,6 +39,10 @@ setStyle(`
   }
   .tre-finder summary {
     white-space: nowrap;
+  }
+  .tre-editor-shell {
+    width: 100%;
+    height: 100%;
   }
   .tre-editor-shell .operations li span {
     margin-right: .5em;
@@ -93,13 +104,14 @@ client( (err, ssb, config) => {
         ]),
         makeDivider(),
         makePane('70%', [
-          h('h1', 'Editor'),
+          h('h1', 'Editor Shell'),
           computed(primarySelection, kv => {
             if (revisionRoot(kv) == revisionRoot(current_kv)) return computed.NO_CHANGE
             current_kv = kv
             console.warn('rendering editor shell for', kv)
+            const contentObs = Value(Object.assign({}, kv.value.content))
             return kv ? [
-              renderShell(kv, {renderEditor, contentObs: Value(kv.value.content)})
+              renderShell(kv, {renderEditor, contentObs})
             ] : []
           })
         ])
