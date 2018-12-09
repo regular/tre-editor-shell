@@ -27,7 +27,7 @@
     "ssb-revisions": "^1.0.1",
     "tre-client": "^1.1.0",
     "tre-finder": "^2.0.0",
-    "tre-json-editor": "^1.0.0",
+    "tre-json-editor": "^2.1.0",
     "tre-split-pane": "^1.0.0"
   }
 }

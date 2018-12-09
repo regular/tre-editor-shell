@@ -19,7 +19,7 @@ setStyle(`
   body {
     --tre-selection-color: green;
     --tre-secondary-selection-color: yellow;
-    font-family: sans;
+    font-family: sans-serif;
   }
   h1 {
     font-size: 18px;
@@ -39,6 +39,9 @@ setStyle(`
   }
   .tre-finder summary {
     white-space: nowrap;
+  }
+  .tre-finder summary:focus {
+    outline: 1px solid rgba(255,255,255,0.1);
   }
   .tre-editor-shell {
     width: 100%;
