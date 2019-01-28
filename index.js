@@ -81,7 +81,7 @@ module.exports = function EditorShell(ssb, opts) {
     return h(`li.${op}`, [
       h('span.op', op),
       h('span.path', pointer.decode(path).join('.')),
-      h(`span.value.${typeof value}`, value),
+      h(`span.value.${typeof value}`, typeof value == 'string' ? value : `[${typeof value}]`),
       h('span.from', from),
       opts.applyButton ? h('button', {
         'ev-click': e => {
