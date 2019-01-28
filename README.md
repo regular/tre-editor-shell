@@ -19,3 +19,5 @@ TODO:
 - hide revisionRoot/revisionBranch TODOs
 - apply these automatically when rebasing.
 
+
+License: AGPLv3 - Copyright 2019 Jan Boelsche
