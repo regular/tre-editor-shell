@@ -1,6 +1,6 @@
 {
   "name": "tre-editor-shell",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "A wrapper around editors that warns about external changes and offers to merge",
   "main": "index.js",
   "scripts": {
