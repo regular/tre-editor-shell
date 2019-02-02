@@ -9,70 +9,12 @@ const setStyle = require('module-styles')('tre-editor-shell-demo')
 const {makePane, makeDivider, makeSplitPane} = require('tre-split-pane')
 require('brace/theme/solarized_dark')
 
-setStyle(`
-  body, html, .tre-prototypes-demo {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    width: 100%;
-  }
-  body {
-    --tre-selection-color: green;
-    --tre-secondary-selection-color: yellow;
-    font-family: sans-serif;
-  }
-  h1 {
-    font-size: 18px;
-  }
-  .pane {
-    background: #eee;
-  }
-  .pane > h1 {
-    margin-left: 1em;
-  }
-  
-  .tre-finder .summary select {
-    font-size: 9pt;
-    background: transparent;
-    border: none;
-    width: 50px;
-  }
-  .tre-finder summary {
-    white-space: nowrap;
-  }
-  .tre-finder summary:focus {
-    outline: 1px solid rgba(255,255,255,0.1);
-  }
-  .tre-editor-shell {
-    width: 100%;
-    height: 100%;
-  }
-  .tre-editor-shell .operations li span {
-    margin-right: .5em;
-  }
-  .tre-editor-shell .new-revision {
-    background: #B9A249;
-    padding: 1em;
-    margin-bottom: 1em;
-  }
-  .operations span.path {
-    font-family: monospace;
-  }
-  .operations span.value.string:before {
-    content: "\\"";
-  }
-  .operations span.value.string:after {
-    content: "\\"";
-  }
-`)
+styles()
 
 client( (err, ssb, config) => {
   if (err) return console.error(err)
 
-  const primarySelection = Value()
-  
   const renderFinder = Finder(ssb, {
-    primarySelection,
     skipFirstLevel: true,
     factory: {
       menu: ()=> [{label: 'Object', type: 'object'}],
@@ -96,7 +38,6 @@ client( (err, ssb, config) => {
       ssb.publish(kv.value.content, cb)
     }
   })
-  let current_kv
 
   document.body.appendChild(
     h('div.tre-prototypes-demo', [
@@ -108,14 +49,10 @@ client( (err, ssb, config) => {
         makeDivider(),
         makePane('70%', [
           h('h1', 'Editor Shell'),
-          computed(primarySelection, kv => {
-            if (revisionRoot(kv) == revisionRoot(current_kv)) return computed.NO_CHANGE
-            current_kv = kv
-            console.warn('rendering editor shell for', kv)
-            const contentObs = Value(Object.assign({}, kv.value.content))
-            return kv ? [
-              renderShell(kv, {renderEditor, contentObs})
-            ] : []
+          computed(renderFinder.primarySelectionObs, kv => {
+            if (!kv) return []
+            console.warn('rendering EditorShell for', kv.key)
+            return renderShell( kv, {renderEditor})
           })
         ])
       ])
@@ -125,4 +62,69 @@ client( (err, ssb, config) => {
 
 function revisionRoot(kv) {
   return kv && kv.value.content && kv.value.content.revisionRoot || kv && kv.key
+}
+
+function unmergeKv(kv) {
+  // if the message has prototypes and they were merged into this message value,
+  // return the unmerged/original value
+  return kv && kv.meta && kv.meta['prototype-chain'] && kv.meta['prototype-chain'][0] || kv
+}
+
+function styles() {
+  setStyle(`
+    body, html, .tre-prototypes-demo {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+    }
+    body {
+      --tre-selection-color: green;
+      --tre-secondary-selection-color: yellow;
+      font-family: sans-serif;
+    }
+    h1 {
+      font-size: 18px;
+    }
+    .pane {
+      background: #eee;
+    }
+    .pane > h1 {
+      margin-left: 1em;
+    }
+    
+    .tre-finder .summary select {
+      font-size: 9pt;
+      background: transparent;
+      border: none;
+      width: 50px;
+    }
+    .tre-finder summary {
+      white-space: nowrap;
+    }
+    .tre-finder summary:focus {
+      outline: 1px solid rgba(255,255,255,0.1);
+    }
+    .tre-editor-shell {
+      width: 100%;
+      height: 100%;
+    }
+    .tre-editor-shell .operations li span {
+      margin-right: .5em;
+    }
+    .tre-editor-shell .new-revision {
+      background: #B9A249;
+      padding: 1em;
+      margin-bottom: 1em;
+    }
+    .operations span.path {
+      font-family: monospace;
+    }
+    .operations span.value.string:before {
+      content: "\\"";
+    }
+    .operations span.value.string:after {
+      content: "\\"";
+    }
+  `)
 }

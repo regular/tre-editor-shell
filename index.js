@@ -5,15 +5,72 @@ const humanTime = require('human-time')
 const History = require('tre-revision-history')
 const {diff, apply} = require('json8-patch')
 const pointer = require('json8-pointer')
+const WatchMerged = require('tre-prototypes')
 
 module.exports = function EditorShell(ssb, opts) {
   opts = opts || {}
   const history = History(ssb)
+  const watchMerged = WatchMerged(ssb)
+
+  return function renderEditorShell(kv, ctx) {
+    ctx = ctx || {}
+    const revRoot = revisionRoot(unmergeKv(kv))
+    if (!revRoot) return
+    const {renderEditor} = ctx
+    
+    const contentObs = ctx.contentObs || Value(unmergeKv(kv).value.content)
+    ctx.contentObs = contentObs
+    const previewObs = ctx.previewObs || getPreviewObs(contentObs)
+    ctx.previewObs = previewObs
+    const baseObs = ctx.baseObs || Value(unmergeKv(kv))
+    ctx.baseObs = baseObs
+
+    const revisionsObs = history(revRoot, {reverse: true})
+    const willFork = computed( [revisionsObs, baseObs], (revisions, base_kv) => {
+      if (!base_kv) return false
+      if (!revisions.length) return false
+      if (revisions[0].key == base_kv.key) return false
+      return true
+    })
+
+    return h('div.tre-editor-shell', [
+      externalChanges(revRoot, baseObs, contentObs, revisionsObs),
+      renderEditor(kv, ctx),
+      localChanges(contentObs, baseObs),
+      saveButton()
+    ])
+
+    function saveButton() {
+      return computed([willFork, baseObs, contentObs], (fork, base_kv, content) => {
+        const disabled = diff(base_kv.value.content, content).length == 0
+        const label = fork ? 'Publish (will fork)' : 'Publish'
+        return h('button', {
+          disabled,
+          'ev-click': e => {
+            if (opts.save) {
+              const content = Object.assign({}, contentObs(), {
+                revisionRoot: revisionRoot(baseObs()),
+                revisionBranch: baseObs().key
+              })
+              opts.save({
+                key: baseObs().key,
+                value: { content }
+              }, (err, new_kv) => {
+                if (err) return
+                kv = new_kv
+                const newContent = kv.value.content
+                contentObs.set(newContent)
+                baseObs.set(kv)
+              })
+            }
+          }
+        }, label)
+      })
+    }
+  }
 
   function externalChanges(revRoot, baseObs, contentObs, revisionsObs) {
-
     return computed( [revisionsObs, baseObs, contentObs], (revisions, base_kv, content) => {
-
       if (!base_kv) return h('span', 'No base')
 
       if (!revisions.length) return h('span', 'No revisions')
@@ -90,62 +147,27 @@ module.exports = function EditorShell(ssb, opts) {
       }, 'Apply') : []
     ])
   }
-  
-  return function renderEditorShell(kv, ctx) {
-    ctx = ctx || {}
-    const revRoot = revisionRoot(kv)
-    if (!revRoot) return
-    const {renderEditor} = ctx
-    const contentObs = ctx.contentObs || Value(kv.value && kv.value.content || {})
-    ctx.contentObs = contentObs
-    const baseObs = ctx.baseObs || Value(kv)
-    ctx.baseObs = baseObs
-    const revisionsObs = history(revRoot, {reverse: true})
-    const willFork = computed( [revisionsObs, baseObs], (revisions, base_kv) => {
-      if (!base_kv) return false
-      if (!revisions.length) return false
-      if (revisions[0].key == base_kv.key) return false
-      return true
+
+  function getPreviewObs(contentObs) {
+    const editing_kv = computed(contentObs, content => {
+      if (!content) return null
+      return {
+        key: 'draft',
+        value: {
+          content
+        }
+      }
     })
-
-    return h('div.tre-editor-shell', [
-      externalChanges(revRoot, baseObs, contentObs, revisionsObs),
-      renderEditor(kv, ctx),
-      localChanges(contentObs, baseObs),
-      saveButton()
-    ])
-
-    function saveButton() {
-      return computed([willFork, baseObs, contentObs], (fork, base_kv, content) => {
-        const disabled = diff(base_kv.value.content, content).length == 0
-        const label = fork ? 'Publish (will fork)' : 'Publish'
-        return h('button', {
-          disabled,
-          'ev-click': e => {
-            if (opts.save) {
-              const content = Object.assign({}, contentObs(), {
-                revisionRoot: revisionRoot(baseObs()),
-                revisionBranch: baseObs().key
-              })
-              opts.save({
-                key: baseObs().key,
-                value: { content }
-              }, (err, new_kv) => {
-                if (err) return
-                kv = new_kv
-                const newContent = kv.value.content
-                contentObs.set(newContent)
-                baseObs.set(kv)
-              })
-            }
-          }
-        }, label)
-      })
-    }
-
+    return watchMerged(editing_kv)
   }
 }
 
 function revisionRoot(kv) {
   return kv && kv.value.content && kv.value.content.revisionRoot || kv.key
+}
+
+function unmergeKv(kv) {
+  // if the message has prototypes and they were merged into this message value,
+  // return the unmerged/original value
+  return kv && kv.meta && kv.meta['prototype-chain'] && kv.meta['prototype-chain'][0] || kv
 }
