@@ -1,6 +1,7 @@
 const h = require('mutant/html-element')
 const computed = require('mutant/computed')
 const Value = require('mutant/value')
+const watch = require('mutant/watch')
 const humanTime = require('human-time')
 const History = require('tre-revision-history')
 const {diff, apply} = require('json8-patch')
@@ -33,7 +34,27 @@ module.exports = function EditorShell(ssb, opts) {
       return true
     })
 
-    return h('div.tre-editor-shell', [
+    const canRebase = computed([revisionsObs, contentObs, baseObs], (revisions, edited, base_kv) => {
+      if (!revisions.length) return computed.NO_CHANGE
+      if (!(base_kv && base_kv.value && base_kv.value.content)) return computed.NO_CHANGE
+      const original = base_kv.value.content
+      const isSame = diff(original, edited).length == 0
+      if (isSame) return revisions[0]
+    })
+
+    const abortWatch = watch(canRebase, newBase => {
+      if (!newBase) return
+      if (baseObs().key == newBase.key) return
+      setTimeout( ()=> {
+        console.warn('Auto-rebassing from', baseObs(), 'to', newBase)
+        baseObs.set(newBase)
+        contentObs.set(newBase.value.content)
+      },0)
+    })
+
+    return h('div.tre-editor-shell', {
+      hooks: [el => abortWatch],
+    }, [
       externalChanges(revRoot, baseObs, contentObs, revisionsObs),
       renderEditor(kv, ctx),
       localChanges(contentObs, baseObs),
