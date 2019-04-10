@@ -46,7 +46,7 @@ module.exports = function EditorShell(ssb, opts) {
       if (!newBase) return
       if (baseObs().key == newBase.key) return
       setTimeout( ()=> {
-        console.warn('Auto-rebassing from', baseObs(), 'to', newBase)
+        console.warn('Auto-rebasing from', baseObs(), 'to', newBase)
         baseObs.set(newBase)
         contentObs.set(newBase.value.content)
       },0)
